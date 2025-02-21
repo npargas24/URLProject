@@ -30,7 +30,7 @@ import csv
 from typing import List, Tuple
 
 class LongUrl:
-    def __init__(self, scheme, subdomain, domainName, topLevelDomain, portNumber, path, queryStringSeparator, queryString, fragment):
+    def __init__(self, scheme="", subdomain="", domainName=[], topLevelDomain="", portNumber=int, path=[], queryStringSeparator="", queryString=[], fragment=""):
         self.scheme = scheme
         self.subdomain = subdomain
         self.domainName = domainName
@@ -42,7 +42,7 @@ class LongUrl:
         self.fragment = fragment 
         #put parse method in here
 
-    def longComp(self, long_url):
+    def longParse(self, long_url):
 
         self.queryStringSeparator = "?"
     
@@ -96,7 +96,7 @@ class LongUrl:
                 section+=1
 
         
-        if self.queryStringSeparator in url_rem:
+        if '?' in url_rem:
             #split things at the search query
             url_slice = url_rem.split('?')
             
@@ -105,33 +105,78 @@ class LongUrl:
                 return long_url
             
             #break apart query operartors
-            slice = url_slice.split('/')
+            slice = url_slice[0].split('/')
             section = 0
 
-            for query in slice:
-                if section != 0:
-                    print("Query String [" , section, "]: ", query)
-                    self.queryString.append(query)
-                else:
-                    section+=1
+            for path_part in slice:
+                if section == 0:
+                    pass
+                if section >= 1:
+                    self.path.append(path_part)
+                    print("Query String [" , (section - 1), "]: ", self.path[section -1])
                 section+=1
         
-        if '#' in url_rem:
+            if '#' in url_rem:
 
+                url_slice = url_rem.split('#')
+
+                if len(url_slice) != 2:
+                    print("invalid URL")
+                    return long_url
+                
+                self.fragment = url_slice[1]
+                print("Fragment: ", self.fragment)
+
+                # splitting again on '?' because it was a local variable
+                #or maybe not
+                slice = url_slice[0].split('?')
+                queries = slice[1]
+
+                section = 0
+                
+                #split apart query on delimiters
+                for query_part in queries.split('&'):
+                    query_smaller = query_part.split('=')
+                    
+                    if len(query_smaller) != 2:
+                        print("skipping weird query")
+                        continue
+                        
+                    #add separated query parts
+                    query_rejoined = (query_smaller[0], query_smaller[1])
+                    self.queryString.append(query_rejoined)
+                    print("Query String [" + str(section) + "]: " + query_smaller[0] + "=" + query_smaller[1])
+                    section+=1
+            
+            else:
+                queries = url_slice[1]
+                section = 0
+                #split apart query on delimiters
+                for query_part in queries.split('&'):
+                    query_smaller = query_part.split('=')
+                    #add separated query parts
+                    self.queryString.append(query_smaller[0], query_smaller[1])
+                    print("Query String [" + section + "]: " + query_smaller[0] + "=" + query_smaller[1])
+                    section+=1
+        
+        
+        elif '#' in url_rem:
+    
             url_slice = url_rem.split('#')
 
             if len(url_slice) != 2:
                 print("invalid URL")
-                return long_url
-            
+                return long_url 
+            #only need this because if there's a fragment it goes at the end
             self.fragment = url_slice[1]
             print("Fragment: ", self.fragment)
-
+        
             
 
 
 
-
+example = LongUrl()
+example.longParse("https://elementor.com/blog/website-url/?query=123#example-url")
 
 
 
