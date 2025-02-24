@@ -26,10 +26,13 @@
 #Make a Short URL class
 #Break the components of Long URL class 
 
-'''import csv
+
+import csv
+import urllib.parse
+from typing import List
 
 class LongUrl:
-    def __init__(self, scheme, subdomain, domainName, topLevelDomain, portNumber, path, queryStringSeparator, queryString, fragment):
+    def __init__(self, scheme="", subdomain="", domainName="", topLevelDomain="", portNumber="", path="", queryStringSeparator="", queryString="", fragment=""):
         self.scheme = scheme
         self.subdomain = subdomain
         self.domainName = domainName
@@ -40,85 +43,80 @@ class LongUrl:
         self.queryString = queryString
         self.fragment = fragment
 
-    def longComp(self, long_url):
+class Url:
+    def __init__(self):
+        self.valid: bool = False
+        self.proto: str = ""
+        self.domain: str = ""
+        self.port: str = ""
+        self.path: List[str] = []
+        self.query: str = ""
+        self.fragment: str = ""
+        self.miniurl: str = ""
 
-        #url_parts = long_url.split("//:")
-        #scheme = url_parts[0]
-        #url_rem = url_parts[1]
-        #keep cutting
-        #for part in url_rem.split("/")
-        chunk1 = ""
-        chunk2 = ""
-        for char in long_url:
-            chunk1 = chunk1 + char
-            if chunk1 == 'https://':
-                self.scheme = chunk1
-                long_url = long_url - chunk1
-                for char in long_url:
-                    chunk2 = chunk2 + char
-                    if chunk2 == 'www.':
-                        domainName = chunk2
-                        long_url = long_url - chunk2'''
+def parse_url(long_url: str) -> LongUrl:
+    parsed = urllib.parse.urlparse(long_url)
+    domain_parts = parsed.netloc.split(".")
 
-from typing import List
+    subdomain = ""
+    domainName = ""
+    topLevelDomain = ""
 
-class Url():
-    valid : bool = False
-    proto : str = ""
-    domain : str = ""
-    port : str = ""
-    path : List[str] = ""
-    query : str = ""
-    fragment : str = ""
-    miniurl : str = ""
+    if len(domain_parts) > 2:
+        subdomain = domain_parts[0]
+        domainName = domain_parts[1]
+        topLevelDomain = domain_parts[-1]
+    elif len(domain_parts) == 2:
+        domainName = domain_parts[0]
+        topLevelDomain = domain_parts[1]
 
-def parse_url(long_url : str) -> Url:
+    # Get port number (if any)
+    portNumber = parsed.port if parsed.port else ""
 
-    url = Url()
-    url_parts = long_url.split("//:")
-    if len(url_parts) != 2:
-        return url
-    url.proto = url_parts[0]
-    url_rem = url_parts[1]
+    # Get path, query string, and fragment
+    path = parsed.path
+    queryStringSeparator = "?" if parsed.query else ""
+    queryString = parsed.query
+    fragment = parsed.fragment
 
-    if ":" in url_rem:
-        url_splits = url_rem.split(":")
-        if len(url_splits) != 2:
-            return url
-        url.domain = url_splits[0]
-        splits = url_splits[1].split("/")
-        if len(splits) >= 2:
-            url.port = splits[0]
-        else:
-            return url
-    else:
-        url_splits = url_rem.split("/")
-        if len(url_splits) < 2:
-            return url
-        url.domain = url_splits[0]
+    return LongUrl(scheme=parsed.scheme, 
+                   subdomain=subdomain, 
+                   domainName=domainName, 
+                   topLevelDomain=topLevelDomain, 
+                   portNumber=portNumber, 
+                   path=path, 
+                   queryStringSeparator=queryStringSeparator, 
+                   queryString=queryString, 
+                   fragment=fragment)
 
-    cnt : int = 0
+def minify(long_url: str) -> LongUrl:
+    return parse_url(long_url)
 
-    if "?" in url_rem:
-        url_splits = url_rem.split("?")
-        splits = url_splits[0].split("/")
-        for split in splits:
-            if cnt == 0:
-                pass
-            if cnt > 1:
-                url.path.append(split)
-            cnt += 1
+# Saving a CSV File
+def save_to_csv(url_list, filename="urls.csv"):
+    with open(filename, mode="w", newline="") as file:
+        writer = csv.writer(file)
+        # Write header row
+        writer.writerow(["Scheme", "Subdomain", "Domain", "Top Level Domain", "Port", "Path", "Query Separator", "Query String", "Fragment"])
+        
+        # Write each parsed URL's components
+        for url in url_list:
+            writer.writerow([
+                url.scheme, url.subdomain, url.domainName, url.topLevelDomain, 
+                url.portNumber, url.path, url.queryStringSeparator, url.queryString, url.fragment
+            ])
 
-    #finish parsing here
+urls = [
+    "https://www.youtube.com/watch?v=a51CXCRuZd0",
+    "http://example.com:8080/path/to/page?query=1#section",
+    "https://sub.domain.co.uk/path"
+]
 
+parsed_urls = [parse_url(url) for url in urls]
 
-def minify(long_url : str) -> Url:
+save_to_csv(parsed_urls)
+print("URLs saved to CSV successfully!")
 
-    url = parse_url(long_url)
-    #do minifying here
-    return url
-
-url = minify("https://www.youtube.com/watch?v=a51CXCRuZd0")
 
 #do it a different way, set up different functions that scan to see what thing matches given a long url
 #ex scan the long_url input and see what matches 'https://' and tht function is scheme
