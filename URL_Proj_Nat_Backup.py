@@ -89,48 +89,51 @@ class LongUrl:
         if "/" in url_rem:
             url_slice = url_rem.split("/")
             domains = url_slice[0]
+            print("The full domain is: ", domains)
             for domain in domains.split("."):
                 print("domain[" + str(section) + "]: " + domain)
                 self.domainName.append(domain)
                 section += 1
 
+    def pathFunc(self,long_url):
+        url_parts = long_url.split("://")
+        url_rem = url_parts[1]
+        
+        url_slice = url_rem.split("/", 1)
+
+        if len(url_slice) > 1:
+            full_path = url_slice[1]
+
+            if '?' in full_path:
+                full_path = full_path.split('?', 1)[0]
+            if '#' in full_path:
+                full_path = full_path.split('#', 1)[0]
+            
+            for path_part in full_path.split('/'):
+                self.path.append(path_part)
+                print('Path part: ', path_part)
+        
+        else:
+            print('No path')
+            return long_url
+
+
     
     def queryFunc(self, long_url):
         url_parts = long_url.split("://")
         url_rem = url_parts[1]
+        
         if '?' in url_rem:
-            #split things at the search query
-            url_slice = url_rem.split('?')
-            
-            if len(url_slice) != 2:
-                print("invalid URL")
-                return long_url
-            
-            #break apart query operartors
-            slice = url_slice[0].split('/')
-            section = 0
+            query_split = url_rem.split('?')
 
-            for path_part in slice:
-                if section == 0:
-                    pass
-                if section >= 1:
-                    self.path.append(path_part)
-                    print("Query String [" , str((section - 1)), "]: ", self.path[section -1])
-                section+=1
-            
-            query = url_slice[1]
-            
-            section = 0
-            for query_part in query.split("&"):
-                qparts = query_part.split("=")
-               
-                if len(qparts) != 2:
-                    print("parsing failed")
-                    return long_url
-               
-                self.queryString.append((qparts[0], qparts[1]))
-                print("query[" + str(section) + "]: " + qparts[0] + "=" + qparts[1])
-                section += 1
+            if '#' in query_split[1]:
+                query_split_split = query_split[1].split('#')
+                self.queryString.append(query_split_split[0])
+                print("A query part: ", self.queryString)
+            else:
+               self.queryString.append(query_split[1])
+               print('a query part: ', self.queryString)
+
 
     def fragmentFunc(self, long_url):
         url_parts = long_url.split("://")
@@ -146,37 +149,18 @@ class LongUrl:
             self.fragment = url_slice[1]
             print("Fragment: ", self.fragment)
 
-                # splitting again on '?' because it was a local variable
-                #or maybe not
-            slice = url_slice[0].split('?')
-            queries = slice[1]
 
-            section = 0
-                
-                #split apart query on delimiters
-            for query_part in queries.split('&'):
-                query_smaller = query_part.split('=')
-                    
-                if len(query_smaller) != 2:
-                    print("skipping weird query")
-                    continue
-                        
-                #add separated query parts
-                query_rejoined = (query_smaller[0], query_smaller[1])
-                self.queryString.append(query_rejoined)
-                print("Query String [" + str(section) + "]: " + query_smaller[0] + "=" + query_smaller[1])
-                section+=1
 
     def parse(self,long_url):
         self.schemeFunc(long_url)
         self.portDomain(long_url)
         self.domainFunc(long_url)
+        self.pathFunc(long_url)
         self.queryFunc(long_url)
         self.fragmentFunc(long_url)
 
 
             
-
 
 
 example = LongUrl()
