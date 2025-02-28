@@ -27,7 +27,19 @@
 #Break the components of Long URL class 
 
 import csv
+import hashlib
+import sqlite3
+import json
+import pickle
 from typing import List, Tuple
+
+my_webapp = "https://myapp.com/"
+db_name = "/Users/nataliepargas/URLProject/little.db"
+conn = None
+cursor = None
+
+insert_query = "INSERT INTO minitable (id, data) VALUES (?, ?)"
+select_query = "SELECT * FROM minitable WHERE id = ?"
 
 class LongUrl:
     def __init__(self, scheme="", subdomain="", domainName=[], topLevelDomain="", portNumber=int, path=[], queryStringSeparator="", queryString=[], fragment=""):
@@ -159,22 +171,85 @@ class LongUrl:
         self.queryFunc(long_url)
         self.fragmentFunc(long_url)
 
+    
+    def db_operations(self,long_url):
+        self.open_db()
+        self.select_db()
+        self.insert_db(long_url)
+        self.close_db()
 
+    
+
+
+    def open_db(self):
+        global conn
+        global cursor
+        
+        conn = sqlite3.connect(db_name)
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS minitable (
+                id INTEGER PRIMARY KEY,
+                data BLOB
+            )
+        ''')
+
+    def close_db(self):
+        global conn
+        global cursor
+
+        conn.commit()
+        conn.close()
+
+        
+        
+    def insert_db(self, long_url):
+        global conn
+        global cursor
+
+        pkl_dat = pickle.dumps(long_url)
+        data = (int(long_url.hash, 16), pkl_dat)
+        cursor.execute(insert_query, data)
+
+    
+    def select_db():
+        global conn
+        global cursor
+
+        cursor.execute(select_query, (int(hash, 16),))
+        result = cursor.fetchone()
+        if result:
+            url : LongUrl = pickle.loads(result[1])
+            return url
+        return None
+
+
+
+        
+
+        
+        
+        '''insert_contents = (
+            (
             
+                       "INSERT INTO urls (scheme,domain,port,path,query,fragment)"
+                       "VALUES(?,?,?,?,?,?)"
+        )
+        )
+
+        cursor.execute(insert_contents, long_url)'''
 
 
 example = LongUrl()
 example.parse("https://elementor.com/blog/website-url/?query=123#example-url")
+example.open_db()
 
 example2 = LongUrl()
 example2.parse("https://github.com/npargas24/URLProject/blob/Nat_Branch/URL_Proj_Nat.py")
 
 example3 = LongUrl()
 example3.parse("https://stackoverflow.com/questions/70307348/how-do-you-update-a-git-repository-from-visual-studio")
-
-
-
-
 
 '''  def longParse(self, long_url):
 
