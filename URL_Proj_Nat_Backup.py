@@ -42,7 +42,7 @@ insert_query = "INSERT INTO minitable (id, data) VALUES (?, ?)"
 select_query = "SELECT * FROM minitable WHERE id = ?"
 
 class LongUrl:
-    def __init__(self, scheme="", subdomain="", domainName=[], topLevelDomain="", portNumber=int, path=[], queryStringSeparator="", queryString=[], fragment=""):
+    def __init__(self, scheme="", subdomain="", domainName=[], topLevelDomain="", portNumber=int, path=[], queryStringSeparator="", queryString=[], fragment="", hashedrl = ""):
         self.scheme = scheme
         self.subdomain = subdomain
         self.domainName = domainName
@@ -52,6 +52,8 @@ class LongUrl:
         self.queryStringSeparator = queryStringSeparator
         self.queryString = queryString
         self.fragment = fragment 
+        self.hash = None
+        self.littleurl = None
         #put parse method in here
 
     
@@ -162,6 +164,10 @@ class LongUrl:
             print("Fragment: ", self.fragment)
 
 
+    class ParsedURL:
+        def __init__(self, valid: bool):
+            self.valid = valid
+
 
     def parse(self,long_url):
         self.schemeFunc(long_url)
@@ -171,10 +177,29 @@ class LongUrl:
         self.queryFunc(long_url)
         self.fragmentFunc(long_url)
 
+        return self.ParsedURL(valid=True)
+
+    
+    def shorten(self,long_url: str):
+        parsedrl = self.parse(long_url)
+        if parsedrl.valid:
+            hashstr = hashlib.sha256(long_url.encode("utf-8"), usedforsecurity=False).hexdigest()
+            hashedrl = hashstr[:12]
+            
+            url_obj = LongUrl(long_url)
+            url_obj.hash = hashedrl
+            url_obj.littleurl = my_webapp + url_obj.hash
+            print("shortened url: " + url_obj.littleurl)
+
+            return url_obj
+            
+
+        return None
+         
     
     def db_operations(self,long_url):
         self.open_db()
-        self.select_db()
+        self.select_db(long_url)
         self.insert_db(long_url)
         self.close_db()
 
@@ -213,16 +238,19 @@ class LongUrl:
         cursor.execute(insert_query, data)
 
     
-    def select_db():
+    def select_db(self, long_url):
         global conn
         global cursor
 
-        cursor.execute(select_query, (int(hash, 16),))
+
+        cursor.execute(select_query, (int(long_url.hash, 16),))
         result = cursor.fetchone()
         if result:
             url : LongUrl = pickle.loads(result[1])
             return url
         return None
+    
+
 
 
 
@@ -242,8 +270,10 @@ class LongUrl:
 
 
 example = LongUrl()
-example.parse("https://elementor.com/blog/website-url/?query=123#example-url")
-example.open_db()
+#example.parse("https://elementor.com/blog/website-url/?query=123#example-url")
+example.shorten("https://elementor.com/blog/website-url/?query=123#example-url")
+#example.db_operations("https://elementor.com/blog/website-url/?query=123#example-url")
+
 
 example2 = LongUrl()
 example2.parse("https://github.com/npargas24/URLProject/blob/Nat_Branch/URL_Proj_Nat.py")
