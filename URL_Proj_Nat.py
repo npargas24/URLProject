@@ -27,9 +27,21 @@
 #Break the components of Long URL class 
 
 import csv
+import hashlib
+import sqlite3
+import json
+import pickle
 from typing import List, Tuple
 
-class LongUrl:
+my_webapp = "https://myapp.com/"
+db_name = "/Users/nataliepargas/URLProject/little.db"
+conn = None
+cursor = None
+
+insert_query = "INSERT INTO minitable (id, data) VALUES (?, ?)"
+select_query = "SELECT * FROM minitable WHERE id = ?"
+
+class UrlHandler:
     def __init__(self, scheme="", subdomain="", domainName=[], topLevelDomain="", portNumber=int, path=[], queryStringSeparator="", queryString=[], fragment=""):
         self.scheme = scheme
         self.subdomain = subdomain
@@ -40,6 +52,8 @@ class LongUrl:
         self.queryStringSeparator = queryStringSeparator
         self.queryString = queryString
         self.fragment = fragment 
+        self.hash = None
+        self.littleurl = None
         #put parse method in here
 
     
@@ -105,13 +119,14 @@ class LongUrl:
             full_path = url_slice[1]
 
             if '?' in full_path:
-                full_path = full_path.split('?', 1)[0]
+                full_path = full_path.split('?')[0]
             if '#' in full_path:
-                full_path = full_path.split('#', 1)[0]
+                full_path = full_path.split('#')[0]
             
             for path_part in full_path.split('/'):
-                self.path.append(path_part)
-                print('Path part: ', path_part)
+                if len(path_part) > 0:
+                    self.path.append(path_part)
+                    print('Path part: ', path_part)
         
         else:
             print('No path')
@@ -150,6 +165,10 @@ class LongUrl:
             print("Fragment: ", self.fragment)
 
 
+    class ParsedURL:
+        def __init__(self, valid: bool):
+            self.valid = valid
+
 
     def parse(self,long_url):
         self.schemeFunc(long_url)
@@ -159,18 +178,81 @@ class LongUrl:
         self.queryFunc(long_url)
         self.fragmentFunc(long_url)
 
+        return self.ParsedURL(valid=True)
 
+
+    def shorten(self,long_url: str):
+        parsedrl = self.parse(long_url)
+        if parsedrl.valid:
+            hashstr = hashlib.md5(long_url.encode("utf-8"), usedforsecurity=False).hexdigest()
+            hashedrl = hashstr[:12]
             
+            self.hash = hashedrl
+            self.littleurl = my_webapp + self.hash
+            print("shortened url: " + self.littleurl)
 
 
-example = LongUrl()
-example.parse("https://elementor.com/blog/website-url/?query=123#example-url")
+class Database() : 
+    db_name = "/Users/nataliepargas/URLProject/little.db"
+    conn = None
+    cursor = None
+    
+    def __init__(self):
+        
+        self.conn = sqlite3.connect(self.db_name)
+        self.cursor = self.conn.cursor()
 
-example2 = LongUrl()
-example2.parse("https://github.com/npargas24/URLProject/blob/Nat_Branch/URL_Proj_Nat.py")
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS minitable (
+                id INTEGER PRIMARY KEY,
+                data BLOB
+            )
+        ''')
 
-example3 = LongUrl()
-example3.parse("https://stackoverflow.com/questions/70307348/how-do-you-update-a-git-repository-from-visual-studio")
+
+    
+    def insert_db(self, long_url):
+
+        pkl_dat = pickle.dumps(long_url)
+        data = (int(long_url.hash, 16), pkl_dat)
+        self.cursor.execute(insert_query, data)
+
+    
+    def select_db(self, short_url):
+        
+        hash = short_url.split('://')[1].split('/')[1]
+        
+        self.cursor.execute(select_query, (int(hash, 16),))
+        result = self.cursor.fetchone()
+        if result:
+            url : UrlHandler = pickle.loads(result[1])
+            return url
+        return None
+    
+    def __exit__(self):
+
+        conn.commit()
+        conn.close()
+
+   
 
 
+url_obj = UrlHandler()
+#url_obj.parse("https://elementor.com/blog/website-url/?query=123#example-url")
+url_obj.shorten("https://elementor.com/blog/website-url/?query=123#example-url")
+
+db = Database()
+db.insert_db(url_obj)
+url_obj2 = None
+url_obj2 = db.select_db(url_obj.littleurl)
+print('url read out of database: ' , url_obj2.littleurl)
+print('url read out of database: ' , url_obj2.domainName)
+print('url read out of database: ' , url_obj2.path)
+
+'''url_obj2 = UrlHandler()
+url_obj2.parse("https://github.com/npargas24/URLProject/blob/Nat_Branch/URL_Proj_Nat.py")
+
+url_obj3 = UrlHandler()
+url_obj3.parse("https://stackoverflow.com/questions/70307348/how-do-you-update-a-git-repository-from-visual-studio")
+'''
 
