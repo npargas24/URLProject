@@ -218,8 +218,11 @@ class Database() :
         self.cursor.execute(insert_query, data)
 
     
-    def select_db(self, long_url):
-        self.cursor.execute(select_query, (int(long_url.hash, 16),))
+    def select_db(self, short_url):
+        
+        hash = short_url.split('://')[1].split('/')[1]
+        
+        self.cursor.execute(select_query, (int(hash, 16),))
         result = self.cursor.fetchone()
         if result:
             url : UrlHandler = pickle.loads(result[1])
@@ -240,12 +243,16 @@ url_obj.shorten("https://elementor.com/blog/website-url/?query=123#example-url")
 
 db = Database()
 db.insert_db(url_obj)
+url_obj2 = None
+url_obj2 = db.select_db(url_obj.littleurl)
+print('url read out of database: ' , url_obj2.littleurl)
+print('url read out of database: ' , url_obj2.domainName)
+print('url read out of database: ' , url_obj2.path)
 
-
-url_obj2 = UrlHandler()
+'''url_obj2 = UrlHandler()
 url_obj2.parse("https://github.com/npargas24/URLProject/blob/Nat_Branch/URL_Proj_Nat.py")
 
 url_obj3 = UrlHandler()
 url_obj3.parse("https://stackoverflow.com/questions/70307348/how-do-you-update-a-git-repository-from-visual-studio")
-
+'''
 
