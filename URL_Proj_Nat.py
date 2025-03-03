@@ -42,25 +42,34 @@ insert_query = "INSERT INTO minitable (id, data) VALUES (?, ?)"
 select_query = "SELECT * FROM minitable WHERE id = ?"
 
 class UrlHandler:
-    def __init__(self, scheme="", subdomain="", domainName=[], topLevelDomain="", portNumber=int, path=[], queryStringSeparator="", queryString=[], fragment=""):
-        self.scheme = scheme
-        self.subdomain = subdomain
-        self.domainName = domainName
-        self.topLevelDomain = topLevelDomain
-        self.portNumber = portNumber
-        self.path = path
-        self.queryStringSeparator = queryStringSeparator
-        self.queryString = queryString
-        self.fragment = fragment 
-        self.hash = None
-        self.littleurl = None
-        #put parse method in here
+
+    scheme = ""
+    subdomain = ""
+    domainName = []
+    topLevelDomain = ""
+    portNumber = 0
+    path = []
+    queryStringSeparator = ""
+    queryString = []
+    fragment = ""
+    hash = ""
+    littleurl = ""
+    valid = False
+
+    def __init__(self, long_url):
+        self.parse(long_url)
+        self.shorten(long_url)
 
     
     def schemeFunc(self, long_url):
         url_parts = long_url.split("://")
+        
+        if len(url_parts) < 2:
+            return False
+        
         self.scheme = url_parts[0]
         print("Scheme: ", self.scheme)
+        return True
 
     
     def portDomain(self, long_url):
@@ -92,7 +101,8 @@ class UrlHandler:
             else:
                 #if there's no slash but there was still a : aside from :// then it's invalid
                 print("invalid URL")
-                return long_url
+                return False
+        return True
 
     
     def domainFunc(self,long_url):
@@ -131,6 +141,8 @@ class UrlHandler:
         else:
             print('No path')
             return long_url
+        
+        return True
 
 
     
@@ -159,31 +171,41 @@ class UrlHandler:
 
             if len(url_slice) != 2:
                 print("invalid URL")
-                return long_url
+                return False
                 
             self.fragment = url_slice[1]
             print("Fragment: ", self.fragment)
 
 
-    class ParsedURL:
-        def __init__(self, valid: bool):
-            self.valid = valid
-
 
     def parse(self,long_url):
-        self.schemeFunc(long_url)
-        self.portDomain(long_url)
-        self.domainFunc(long_url)
-        self.pathFunc(long_url)
-        self.queryFunc(long_url)
-        self.fragmentFunc(long_url)
+        if self.schemeFunc(long_url) == False : 
+            self.valid = False
+            return
+        if self.portDomain(long_url) == False:
+            self.valid = False
+            return
+        if self.domainFunc(long_url) == False:
+            self.valid = False
+            return
+        if self.pathFunc(long_url) == False:
+            self.valid = False
+            return
+        if self.queryFunc(long_url) == False:
+            self.valid = False
+            return
+        if self.fragmentFunc(long_url) == False:
+            self.valid = False
+            return
+        self.valid = True
 
-        return self.ParsedURL(valid=True)
+
+
 
 
     def shorten(self,long_url: str):
-        parsedrl = self.parse(long_url)
-        if parsedrl.valid:
+
+        if self.valid:
             hashstr = hashlib.md5(long_url.encode("utf-8"), usedforsecurity=False).hexdigest()
             hashedrl = hashstr[:12]
             
@@ -237,9 +259,9 @@ class Database() :
    
 
 
-url_obj = UrlHandler()
+url_obj = UrlHandler("https://elementor.com/blog/website-url/?query=123#example-url")
 #url_obj.parse("https://elementor.com/blog/website-url/?query=123#example-url")
-url_obj.shorten("https://elementor.com/blog/website-url/?query=123#example-url")
+#url_obj.shorten("https://elementor.com/blog/website-url/?query=123#example-url")
 
 db = Database()
 db.insert_db(url_obj)
@@ -255,4 +277,5 @@ url_obj2.parse("https://github.com/npargas24/URLProject/blob/Nat_Branch/URL_Proj
 url_obj3 = UrlHandler()
 url_obj3.parse("https://stackoverflow.com/questions/70307348/how-do-you-update-a-git-repository-from-visual-studio")
 '''
+
 
